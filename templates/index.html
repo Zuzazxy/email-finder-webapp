@@ -14,48 +14,73 @@
         </h1>
 
         <!-- Form to submit the data -->
-        <form method="post" action="/mcp/email_guess_v3" class="space-y-4">
+        <form id="email-form" class="space-y-4">
             <div>
                 <label class="block font-medium">Full Name</label>
-                <input name="name" required class="w-full px-3 py-2 border rounded" placeholder="e.g. Alice Kowalska">
+                <input id="name" name="name" required class="w-full px-3 py-2 border rounded" placeholder="e.g. Alice Kowalska">
             </div>
             <div>
                 <label class="block font-medium">Company</label>
-                <input name="company" required class="w-full px-3 py-2 border rounded" placeholder="e.g. Futura Capital">
+                <input id="company" name="company" required class="w-full px-3 py-2 border rounded" placeholder="e.g. Futura Capital">
             </div>
             <div>
                 <label class="block font-medium">Domain</label>
-                <input name="domain" required class="w-full px-3 py-2 border rounded" placeholder="e.g. futura.pl">
+                <input id="domain" name="domain" required class="w-full px-3 py-2 border rounded" placeholder="e.g. futura.pl">
             </div>
             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Find Email</button>
         </form>
 
         <!-- Display results if available -->
-        {% if has_result %}
-        <div class="mt-8">
+        <div id="results" class="mt-8 hidden">
             <h2 class="text-xl font-semibold mb-2">🔗 Results</h2>
-            {% if verified_email %}
-                <p class="mb-2 text-green-600 font-semibold">✅ Verified Email (Hunter): {{ verified_email }} (Score: {{ hunter_score }})</p>
-            {% else %}
-                <p class="mb-2 text-yellow-600 font-medium">⚠️ No verified email found. Showing guesses:</p>
-            {% endif %}
-
-            <ul class="list-disc list-inside text-sm">
-                {% for email in guessed_emails %}
-                    <li>{{ email }}</li>
-                {% endfor %}
-            </ul>
-
+            <p id="verified_email" class="mb-2 text-green-600 font-semibold"></p>
+            <ul id="guessed_emails" class="list-disc list-inside text-sm"></ul>
             <div class="mt-4">
-                <a href="{{ linkedin_link }}" target="_blank" class="text-blue-500 underline">🔗 View on LinkedIn</a>
+                <a id="linkedin_link" href="#" target="_blank" class="text-blue-500 underline">🔗 View on LinkedIn</a>
             </div>
-
-            <!-- Download button -->
             <div class="mt-4">
-                <a href="{{ export_file }}" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">⬇️ Download Excel</a>
+                <a id="download_excel" href="#" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">⬇️ Download Excel</a>
             </div>
         </div>
-        {% endif %}
     </div>
+
+    <script>
+        document.getElementById("email-form").addEventListener("submit", async function(event) {
+            event.preventDefault(); // Prevent the default form submission
+            const formData = {
+                name: document.getElementById("name").value,
+                company: document.getElementById("company").value,
+                domain: document.getElementById("domain").value
+            };
+
+            const response = await fetch('/mcp/email_guess_v3', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            const data = await response.json();
+            
+            if (data) {
+                document.getElementById("results").classList.remove("hidden");
+                document.getElementById("verified_email").textContent = data.verified_email 
+                    ? `✅ Verified Email: ${data.verified_email} (Score: ${data.hunter_score})` 
+                    : "⚠️ No verified email found.";
+                
+                const guessedEmailsList = document.getElementById("guessed_emails");
+                guessedEmailsList.innerHTML = '';
+                data.guessed_emails.forEach(email => {
+                    const li = document.createElement("li");
+                    li.textContent = email;
+                    guessedEmailsList.appendChild(li);
+                });
+
+                document.getElementById("linkedin_link").href = data.linkedin_link;
+                document.getElementById("download_excel").href = data.export_file;
+            }
+        });
+    </script>
 </body>
 </html>
