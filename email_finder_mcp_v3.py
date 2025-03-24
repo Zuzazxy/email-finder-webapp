@@ -1,28 +1,17 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel  # ✅ 你需要加上这行！
+from fastapi import FastAPI
+from pydantic import BaseModel
 from typing import List, Optional
 import pandas as pd
 import urllib.parse
 import requests
-
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse
 
 app = FastAPI()
-
-# 连接模板和静态文件
 app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
-
-# 👇 这是关键：主页路由（确保写上）
-@app.get("/", response_class=HTMLResponse)
-async def serve_form(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
 
 # Hunter API
-HUNTER_API_KEY = "72abdb0fed137f8113538a1732ad9a583186b927"
+HUNTER_API_KEY = "HUNTER_API_KEY_email_finder"
 
 class MCPInput(BaseModel):
     name: str
@@ -70,7 +59,7 @@ async def email_lookup_v3(data: MCPInput):
     # check email（Hunter）
     hunter_result = search_email_hunter(domain, name)
 
-    # guussing
+    # guessing
     guessed_emails = generate_possible_emails(name, domain)
 
     # LinkedIn links searching
@@ -94,8 +83,9 @@ async def email_lookup_v3(data: MCPInput):
         })
 
     # save the Excel
+    file_path = "email_results.xlsx"
     df = pd.DataFrame(rows)
-    df.to_excel("email_results.xlsx", index=False)
+    df.to_excel(file_path, index=False)
 
     return {
         "verified_email": hunter_result.get("email") if hunter_result else None,
@@ -107,5 +97,8 @@ async def email_lookup_v3(data: MCPInput):
 
 @app.get("/download/excel")
 async def download_excel():
-    df = pd.read_excel("email_results.xlsx")
-    return df.to_dict(orient="records")
+    file_path = "email_results.xlsx"
+    
+    # Returning the file as streaming response
+    return StreamingResponse(open(file_path, mode="rb"), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=email_results.xlsx"})
+
