@@ -82,10 +82,12 @@ async def email_lookup_v3(data: MCPInput):
             "Score": ""
         })
 
-    # save the Excel
-    file_path = "email_results.xlsx"
+    # save the Excel in-memory
     df = pd.DataFrame(rows)
-    df.to_excel(file_path, index=False)
+    from io import BytesIO
+    output = BytesIO()
+    df.to_excel(output, index=False)
+    output.seek(0)  # Rewind the BytesIO buffer before returning it
 
     return {
         "verified_email": hunter_result.get("email") if hunter_result else None,
@@ -97,8 +99,14 @@ async def email_lookup_v3(data: MCPInput):
 
 @app.get("/download/excel")
 async def download_excel():
+    # Generate file on-the-fly instead of saving to disk
     file_path = "email_results.xlsx"
-    
-    # Returning the file as streaming response
-    return StreamingResponse(open(file_path, mode="rb"), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=email_results.xlsx"})
+    from io import BytesIO
 
+    # Assuming that the file exists in memory
+    df = pd.read_excel(file_path)  # You might need to generate this dynamically
+    output = BytesIO()
+    df.to_excel(output, index=False)
+    output.seek(0)
+
+    return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=email_results.xlsx"})
