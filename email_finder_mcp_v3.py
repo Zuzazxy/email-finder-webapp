@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from typing import List, Optional
 import pandas as pd
@@ -6,11 +6,15 @@ import urllib.parse
 import requests
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse
+from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Hunter API
+# Initialize Jinja2 Templates for HTML rendering
+templates = Jinja2Templates(directory="templates")
+
+# Hunter API Key
 HUNTER_API_KEY = "HUNTER_API_KEY_email_finder"
 
 class MCPInput(BaseModel):
@@ -50,13 +54,17 @@ def search_email_hunter(domain: str, name: str) -> Optional[dict]:
             }
     return None
 
+@app.get("/")
+async def get_form(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
 @app.post("/mcp/email_guess_v3")
-async def email_lookup_v3(data: MCPInput):
+async def email_lookup_v3(data: MCPInput, request: Request):
     name = data.name
     domain = data.domain
     company = data.company
 
-    # check email（Hunter）
+    # check email (Hunter)
     hunter_result = search_email_hunter(domain, name)
 
     # guessing
@@ -65,7 +73,7 @@ async def email_lookup_v3(data: MCPInput):
     # LinkedIn links searching
     linkedin = generate_linkedin_search_url(name, company)
 
-    # importing
+    # preparing rows for Excel
     rows = []
 
     if hunter_result:
@@ -82,31 +90,22 @@ async def email_lookup_v3(data: MCPInput):
             "Score": ""
         })
 
-    # save the Excel in-memory
+    # save the Excel
+    file_path = "email_results.xlsx"
     df = pd.DataFrame(rows)
-    from io import BytesIO
-    output = BytesIO()
-    df.to_excel(output, index=False)
-    output.seek(0)  # Rewind the BytesIO buffer before returning it
+    df.to_excel(file_path, index=False)
 
-    return {
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "has_result": True,
         "verified_email": hunter_result.get("email") if hunter_result else None,
         "hunter_score": hunter_result.get("score") if hunter_result else None,
         "guessed_emails": guessed_emails,
         "linkedin_link": linkedin,
         "export_file": "/download/excel"
-    }
+    })
 
 @app.get("/download/excel")
 async def download_excel():
-    # Generate file on-the-fly instead of saving to disk
     file_path = "email_results.xlsx"
-    from io import BytesIO
-
-    # Assuming that the file exists in memory
-    df = pd.read_excel(file_path)  # You might need to generate this dynamically
-    output = BytesIO()
-    df.to_excel(output, index=False)
-    output.seek(0)
-
-    return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=email_results.xlsx"})
+    return StreamingResponse(open(file_path, mode="rb"), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=email_results.xlsx"})
