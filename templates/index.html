@@ -1,65 +1,58 @@
-# requirements.txt
-fastapi
-uvicorn
-jinja2
-pandas
-requests
-openpyxl
-python-multipart
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Finder</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="max-w-xl mx-auto mt-10 p-6 bg-white rounded shadow">
+        <h1 class="text-2xl font-bold mb-4">
+            <img src="/static/favicon.ico" class="inline w-5 h-5 mr-2">Email Finder Tool
+        </h1>
 
----
+        <form method="post" action="/lookup" class="space-y-4">
+            <div>
+                <label class="block font-medium">Full Name</label>
+                <input name="name" required class="w-full px-3 py-2 border rounded" placeholder="e.g. Alice Kowalska">
+            </div>
+            <div>
+                <label class="block font-medium">Company</label>
+                <input name="company" required class="w-full px-3 py-2 border rounded" placeholder="e.g. Futura Capital">
+            </div>
+            <div>
+                <label class="block font-medium">Domain</label>
+                <input name="domain" required class="w-full px-3 py-2 border rounded" placeholder="e.g. futura.pl">
+            </div>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Find Email</button>
+        </form>
 
-# start.sh
-uvicorn email_finder_mcp_v3:app --host 0.0.0.0 --port 10000
+        {% if has_result %}
+        <div class="mt-8">
+            <h2 class="text-xl font-semibold mb-2">🔗 Results</h2>
+            {% if verified_email %}
+                <p class="mb-2 text-green-600 font-semibold">✅ Verified Email (Hunter): {{ verified_email }} (Score: {{ hunter_score }})</p>
+            {% else %}
+                <p class="mb-2 text-yellow-600 font-medium">⚠️ No verified email found. Showing guesses:</p>
+            {% endif %}
 
----
+            <ul class="list-disc list-inside text-sm">
+                {% for email in guessed_emails %}
+                    <li>{{ email }}</li>
+                {% endfor %}
+            </ul>
 
-# .gitignore
-__pycache__/
-*.pyc
-.env
-email_results.xlsx
+            <div class="mt-4">
+                <a href="{{ linkedin }}" target="_blank" class="text-blue-500 underline">🔗 View on LinkedIn</a>
+            </div>
 
----
-
-# README.md
-# Email Finder Web App ✉️🔍
-
-This is a FastAPI-based email finder tool that:
-- Suggests likely email formats
-- Queries Hunter.io for verified email addresses
-- Generates LinkedIn search links
-- Allows download of results to Excel
-- Has a simple web front-end with TailwindCSS
-
-## 🚀 How to Run Locally
-```bash
-git clone https://github.com/your-username/email-finder-app.git
-cd email-finder-app
-pip install -r requirements.txt
-uvicorn email_finder_mcp_v3:app --reload --port 8080
-```
-
-Then open [http://127.0.0.1:8080](http://127.0.0.1:8080) in your browser.
-
-## 🌐 How to Deploy to Render
-1. Create a Render.com account
-2. New + → Web Service → Connect your GitHub repo
-3. Set Build Command:
-```
-pip install -r requirements.txt
-```
-4. Start Command:
-```
-sh start.sh
-```
-5. Port: `10000`
-
-Done! 🎉
-
-## 🔐 Optional: Environment Variables
-Create a `.env` file (not committed) with:
-```
-HUNTER_API_KEY=your_actual_key
-```
-And read it in your Python code using `os.getenv()`.
+            <div class="mt-4">
+                <a href="/download/excel" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">⬇️ Download Excel</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
