@@ -1,0 +1,65 @@
+# requirements.txt
+fastapi
+uvicorn
+jinja2
+pandas
+requests
+openpyxl
+python-multipart
+
+---
+
+# start.sh
+uvicorn email_finder_mcp_v3:app --host 0.0.0.0 --port 10000
+
+---
+
+# .gitignore
+__pycache__/
+*.pyc
+.env
+email_results.xlsx
+
+---
+
+# README.md
+# Email Finder Web App ✉️🔍
+
+This is a FastAPI-based email finder tool that:
+- Suggests likely email formats
+- Queries Hunter.io for verified email addresses
+- Generates LinkedIn search links
+- Allows download of results to Excel
+- Has a simple web front-end with TailwindCSS
+
+## 🚀 How to Run Locally
+```bash
+git clone https://github.com/your-username/email-finder-app.git
+cd email-finder-app
+pip install -r requirements.txt
+uvicorn email_finder_mcp_v3:app --reload --port 8080
+```
+
+Then open [http://127.0.0.1:8080](http://127.0.0.1:8080) in your browser.
+
+## 🌐 How to Deploy to Render
+1. Create a Render.com account
+2. New + → Web Service → Connect your GitHub repo
+3. Set Build Command:
+```
+pip install -r requirements.txt
+```
+4. Start Command:
+```
+sh start.sh
+```
+5. Port: `10000`
+
+Done! 🎉
+
+## 🔐 Optional: Environment Variables
+Create a `.env` file (not committed) with:
+```
+HUNTER_API_KEY=your_actual_key
+```
+And read it in your Python code using `os.getenv()`.
